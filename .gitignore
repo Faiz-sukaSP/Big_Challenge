@@ -1,0 +1,5 @@
+# Mengabaikan semua file di dalam folder bag+of+words
+bag+of+words/
+
+# Mengabaikan semua file dengan ekstensi .md
+*.md
