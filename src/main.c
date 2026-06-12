@@ -15,6 +15,7 @@ int main(void) {
   char docwordPath[512];
   char vocabPath[512];
   char collection[128];
+  char userInput[512];
 
   // Inisialisasi cache memori untuk kata paling sering dan paling jarang dalam
   // file
@@ -23,36 +24,53 @@ int main(void) {
 
   // Meminta input file sampai mendapatkan file yang valid
   while (1) {
-    printf("\n======================================================\n");
+    printf("\n==============================================================="
+           "====\n");
     printf("Masukkan file yang ingin anda urutkan: ");
-    printf("======================================================\n");
 
-    if (fgets(docwordPath, sizeof(docwordPath), stdin) == NULL)
-      continue;
-
-    // Hapus karakter newline (\r dan \n) di akhir input
-    docwordPath[strcspn(docwordPath, "\r\n")] = '\0';
-
-    if (strlen(docwordPath) == 0)
-      continue;
-
-    fp = fopen(docwordPath, "r");
-    if (!fp) {
-      printf("\n======================================================\n");
-      printf("File docword'%s' tidak ditemukan, silakan coba lagi!",
-             docwordPath);
-      printf("\n======================================================\n");
+    if (fgets(userInput, sizeof(userInput), stdin) == NULL) {
+      printf("\n==============================================================="
+             "====\n");
       continue;
     }
 
-    // Tentukan file vocabulary secara otomatis dan buka file tersebut
-    getVocabPath(docwordPath, vocabPath, sizeof(vocabPath));
+    // Hapus karakter newline (\r dan \n) di akhir input
+    userInput[strcspn(userInput, "\r\n")] = '\0';
+
+    if (strlen(userInput) == 0)
+      continue;
+
+    fp = fopen(userInput, "r");
+    if (!fp) {
+      printf("\n==============================================================="
+             "====\n");
+      printf("File '%s' tidak ditemukan, silakan coba lagi", docwordPath);
+      printf("\n==============================================================="
+             "====\n");
+      continue;
+    }
+
+    // Menjamin docwordPath dan vocabPath menggunakan format ekstensi yang benar
+    normalizePaths(userInput, docwordPath, vocabPath, sizeof(docwordPath));
+
+    // Ambil nama koleksi dataset dari hasil path yang sudah dinormalisasi
+    extractCollectionName(docwordPath, collection, sizeof(collection));
+    fp = fopen(docwordPath, "r");
+    if (!fp) {
+      printf("\n==============================================================="
+             "====\n");
+      printf("File '%s' tidak ditemukan, silakan coba lagi\n", docwordPath);
+      printf("================================================================="
+             "==\n");
+      continue;
+    }
     vfp = fopen(vocabPath, "r");
     if (!vfp) {
-      printf("\n======================================================\n");
-      printf("File vocab '%s' tidak ditemukan, silakan coba lagi!\n",
-             vocabPath);
-      printf("\n======================================================\n");
+      printf("\n==============================================================="
+             "====\n");
+      printf("File vocab '%s' tidak ditemukan, silakan coba lagi", vocabPath);
+      printf("\n==============================================================="
+             "====\n");
       fclose(fp);
 
       // set pointer file menjadi NULL
@@ -72,9 +90,11 @@ int main(void) {
   long long N = 0;
 
   if (!fgets(line, sizeof(line), fp)) {
-    printf("\n=====================\n");
-    printf("File docword kosong");
-    printf("\n=====================\n");
+    printf("\n==============================================================="
+           "====\n");
+    printf("File docword kosong. Silahkan pilih file yang lain");
+    printf("\n==============================================================="
+           "====\n");
 
     // Menutup file
     fclose(fp);
@@ -113,17 +133,21 @@ int main(void) {
   // Mengambil nilai N dari baris ketiga
   N = atoll(line);
 
-  printf("\n======================================================\n");
-  printf("Dataset Info: \nD=%d\nW=%d\nN=%lld\n", D, W, N);
-  printf("======================================================\n");
+  printf("\n==============================================================="
+         "====\n");
+  printf("Dataset Info: \nD = %d\nW = %d\nN = %lld", D, W, N);
+  printf("\n==============================================================="
+         "====\n");
 
   // Alokasi memori array vocabulary dengan ukuran W + 1 (1-indexed)
   char **vocab = malloc((W + 1) * sizeof(char *));
 
   if (!vocab) {
-    printf("\n=============================================\n");
+    printf("\n==============================================================="
+           "====\n");
     printf("Gagal mengalokasikan memori untuk vocabulary");
-    printf("\n=============================================\n");
+    printf("\n==============================================================="
+           "====\n");
 
     // tutup
     fclose(fp);
@@ -148,9 +172,11 @@ int main(void) {
   // Alokasi array frekuensi kata dengan ukuran W + 1 diinisialisasi dengan 0
   long long *freq = calloc(W + 1, sizeof(long long));
   if (!freq) {
-    printf("\n=================================================\n");
+    printf("\n==============================================================="
+           "====\n");
     printf("Gagal mengalokasikan memori untuk array frekuensi");
-    printf("\n=================================================\n");
+    printf("\n==============================================================="
+           "====\n");
 
     // membebaskan memori yang udah dialokasikan
     for (int i = 1; i <= W; i++)
@@ -162,11 +188,11 @@ int main(void) {
   }
 
   // Membaca docword secara streaming menggunakan block reader berukuran 8 MB
-  printf("\n==================================================================="
-         "\n");
+  printf("\n==============================================================="
+         "====\n");
   printf("Membaca data docword secara streaming dan mengumpulkan frekuensi...");
-  printf("\n==================================================================="
-         "\n");
+  printf("\n==============================================================="
+         "====\n");
 
   // Mulai menghitung waktu pembacaan
   clock_t readStart = clock();
@@ -337,13 +363,17 @@ int main(void) {
 
   // Tampilkan waktu pembacaan file (logika cetak cerdas)
   if (readElapsedMs < 1000.0) {
-    printf("\n============================================\n");
-    printf("Selesai membaca file. Waktu: %.2f ms\n", readElapsedMs);
-    printf("\n============================================\n");
+    printf("\n==============================================================="
+           "====\n");
+    printf("Selesai membaca file. Waktu: %.2f ms", readElapsedMs);
+    printf("\n==============================================================="
+           "====\n");
   } else {
-    printf("\n============================================\n");
-    printf("Selesai membaca file. Waktu: %.2f detik\n", readElapsedMs / 1000.0);
-    printf("\n============================================\n");
+    printf("\n==============================================================="
+           "====\n");
+    printf("Selesai membaca file. Waktu: %.2f detik", readElapsedMs / 1000.0);
+    printf("\n==============================================================="
+           "====\n");
   }
 
   // Loop menu pilihan interaktif
@@ -357,27 +387,33 @@ int main(void) {
            "data\n");
     printf("   yang diperlukan dan jumlahkan frekuensi kata secara benar.\n");
     printf("3. Selanjutnya, MENU pilihan ditampilkan dan pilihan ditentukan "
-           "oleh\n");
-    printf("   user. Proses dilakukan berdasarkan pilihan user.\n");
+           "oleh\n   user. Proses dilakukan berdasarkan pilihan user.\n");
+    printf("4. Pilih menu 1 dan 2 terlebih dahulu agar pengurutan "
+           "tersimpan\n   kedalam file baru\n");
     printf("/************************** Akhir Petunjuk "
            "***********************/\n\n");
-    printf("Pilihan:\n");
-    printf("1) Tentukan kata paling SERING muncul (min-heap)\n");
+    printf("\n==============================================================="
+           "====\n");
+    printf("                             Pilihan");
+    printf("\n==============================================================="
+           "====\n");
+    printf("\n1) Tentukan kata paling SERING muncul (min-heap)\n");
     printf("2) Tentukan kata paling JARANG muncul (max-heap)\n");
     printf("3) Tampilkan kata paling SERING muncul\n");
     printf("4) Tampilkan kata paling JARANG muncul\n");
     printf("5) Selesai\n\n");
     printf("Pilihan anda: ");
-    printf("\n========================================================\n");
 
     char choiceStr[64];
 
     // input pilihan user
-    if (fgets(choiceStr, sizeof(choiceStr), stdin) == NULL) {
+    if (fgets(choiceStr, sizeof(choiceStr), stdin) == NULL)
       continue;
-    }
+
     // Ubah string menjadi integer
     choice = atoi(choiceStr);
+    printf("==============================================================="
+           "====\n");
 
     // Pilihan No 1
     if (choice == 1) {
@@ -385,9 +421,8 @@ int main(void) {
 
       // Loop validasi input nilai k
       while (1) {
-        printf("\n------------------------------------\n");
+        printf("\n--------------------------------------\n");
         printf("Tentukan nilai k (10 < k < 150): ");
-        printf("\n------------------------------------\n");
 
         // input nilai k
         char k_str[64];
@@ -395,6 +430,7 @@ int main(void) {
         // input nilai k
         if (fgets(k_str, sizeof(k_str), stdin) == NULL)
           continue;
+        printf("--------------------------------------\n");
 
         // Ubah string menjadi integer
         k = atoi(k_str);
@@ -404,17 +440,25 @@ int main(void) {
           break;
 
         // Pesan error jika nilai k tidak valid
-        printf("\n========================================================\n");
+        printf(
+            "\n==============================================================="
+            "====\n");
         printf("Nilai k tidak valid. Harus berada di rentang 10 < k < 150");
-        printf("\n========================================================\n");
+        printf(
+            "\n==============================================================="
+            "====\n");
       }
 
       // Alokasi memori dinamis untuk buffer elemen min-heap berukuran k
       HeapNodePtr topFrequent = malloc(k * sizeof(HeapNode));
       if (!topFrequent) {
-        printf("\n======================================\n");
+        printf(
+            "\n==============================================================="
+            "====\n");
         printf("Gagal mengalokasikan memori untuk heap");
-        printf("\n======================================\n");
+        printf(
+            "\n==============================================================="
+            "====\n");
         continue;
       }
 
@@ -467,14 +511,14 @@ int main(void) {
 
       // Validasi input nilai k
       while (1) {
-        printf("\n------------------------------------\n");
+        printf("\n--------------------------------------\n");
         printf("Tentukan nilai k (10 < k < 150): ");
-        printf("\n------------------------------------\n");
 
         // Input nilai k
         char k_str[64];
         if (fgets(k_str, sizeof(k_str), stdin) == NULL)
           continue;
+        printf("--------------------------------------\n");
 
         // Ubah string menjadi integer
         k = atoi(k_str);
@@ -484,17 +528,25 @@ int main(void) {
           break;
 
         // Pesan error jika nilai k tidak valid
-        printf("\n========================================================\n");
+        printf(
+            "\n==============================================================="
+            "====\n");
         printf("Nilai k tidak valid. Harus berada di rentang 10 < k <150");
-        printf("\n========================================================\n");
+        printf(
+            "\n==============================================================="
+            "====\n");
       }
 
       // Alokasi memori dinamis untuk buffer elemen max-heap berukuran k
       HeapNodePtr topRare = malloc(k * sizeof(HeapNode));
       if (!topRare) {
-        printf("\n======================================\n");
+        printf(
+            "\n==============================================================="
+            "====\n");
         printf("Gagal mengalokasikan memori untuk heap");
-        printf("\n======================================\n");
+        printf(
+            "\n==============================================================="
+            "====\n");
         continue;
       }
 
@@ -558,10 +610,10 @@ int main(void) {
 
         // Menampilkan waktu yang dibutuhkan untuk heapsort
         if (freqCache.elapsed < 1000.0) {
-          printf("\n-----------------------------------------\n");
+          printf("-----------------------------------------\n");
           printf("Waktu untuk mengurutkan: %.2f ms\n", freqCache.elapsed);
         } else {
-          printf("\n-----------------------------------------\n");
+          printf("-----------------------------------------\n");
           printf("Waktu untuk mengurutkan: %.2f detik\n",
                  freqCache.elapsed / 1000.0);
         }
@@ -569,10 +621,14 @@ int main(void) {
 
       // Jika data belum ada di memori
       else {
-        printf("\n========================================================\n");
+        printf(
+            "\n==============================================================="
+            "====\n");
         printf("Data hasil kata paling sering belum ada di memori Silakan"
                "pilih menu 1 terlebih dahulu\n");
-        printf("\n========================================================\n");
+        printf(
+            "\n==============================================================="
+            "====\n");
       }
     }
 
@@ -586,28 +642,32 @@ int main(void) {
           printf("%s (%lld)\n", rareCache.words[i], rareCache.freqs[i]);
 
         if (rareCache.elapsed < 1000.0) {
-          printf("\n-----------------------------------------\n");
+          printf("-----------------------------------------\n");
           printf("Waktu untuk mengurutkan: %.2f ms\n", rareCache.elapsed);
         } else {
-          printf("\n-----------------------------------------\n");
+          printf("-----------------------------------------\n");
           printf("Waktu untuk mengurutkan: %.2f detik\n",
                  rareCache.elapsed / 1000.0);
         }
       }
 
       else {
-        printf("\n========================================================\n");
+        printf(
+            "\n==============================================================="
+            "====\n");
         printf("Data hasil kata paling jarang belum ada di memori Silakan"
                "pilih menu 2 terlebih dahulu");
-        printf("\n========================================================\n");
+        printf(
+            "\n==============================================================="
+            "====\n");
       }
     }
 
     else if (choice == 5) {
       // Bebaskan semua sisa alokasi memori saat keluar
-      printf("\n================================\n");
+      printf("\n==============================================================="
+             "====\n");
       printf("Membebaskan memori dan keluar...");
-      printf("\n================================\n");
 
       // Bebaskan memori yang dialokasikan untuk vocab
       for (int i = 1; i <= W; i++) {
@@ -627,14 +687,17 @@ int main(void) {
       freeCache(&rareCache);
 
       // Menampilkan pesan selesai
-      printf("\n================================\n");
-      printf("Selesai. Terima kasih\n");
-      printf("\n================================\n");
+      printf("Selesai dan Terima kasih");
+      printf("\n==============================================================="
+             "====\n\n");
       break;
+
     } else {
-      printf("\n========================================================\n");
+      printf("\n==============================================================="
+             "====\n");
       printf("Pilihan tidak valid. Silakan masukkan 1-5.\n");
-      printf("\n========================================================\n");
+      printf("\n==============================================================="
+             "====\n");
     }
   }
 
