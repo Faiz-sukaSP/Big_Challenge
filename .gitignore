@@ -1,5 +1,14 @@
 # Mengabaikan semua file di dalam folder bag+of+words
 bag+of+words/
 
+# Mengabaikan file macos
+.DS_Store
+
 # Mengabaikan semua file dengan ekstensi .md
 *.md
+
+# Mengabaikan file lain yang tidak penting
+*.o
+*.out
+*.dSYM
+*.cache

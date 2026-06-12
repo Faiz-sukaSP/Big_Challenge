@@ -23,9 +23,10 @@ int main(void) {
   CachedResult rareCache = {.isValid = 0};
 
   // Meminta input file sampai mendapatkan file yang valid
+  // Meminta input file sampai mendapatkan file yang valid
   while (1) {
-    printf("\n==============================================================="
-           "====\n");
+    printf("\n================================================================="
+           "==\n");
     printf("Masukkan file yang ingin anda urutkan: ");
 
     if (fgets(userInput, sizeof(userInput), stdin) == NULL) {
@@ -40,48 +41,39 @@ int main(void) {
     if (strlen(userInput) == 0)
       continue;
 
-    fp = fopen(userInput, "r");
-    if (!fp) {
-      printf("\n==============================================================="
-             "====\n");
-      printf("File '%s' tidak ditemukan, silakan coba lagi", docwordPath);
-      printf("\n==============================================================="
-             "====\n");
-      continue;
-    }
-
-    // Menjamin docwordPath dan vocabPath menggunakan format ekstensi yang benar
+    // Lakukan normalisasi JALUR terlebih dahulu sebelum membuka
+    // file apa pun!
     normalizePaths(userInput, docwordPath, vocabPath, sizeof(docwordPath));
 
     // Ambil nama koleksi dataset dari hasil path yang sudah dinormalisasi
     extractCollectionName(docwordPath, collection, sizeof(collection));
+
+    // Buka file docword yang jalurnya sudah dijamin benar
     fp = fopen(docwordPath, "r");
     if (!fp) {
       printf("\n==============================================================="
              "====\n");
-      printf("File '%s' tidak ditemukan, silakan coba lagi\n", docwordPath);
+      printf("File data '%s' tidak ditemukan, silakan coba lagi\n",
+             docwordPath);
       printf("================================================================="
              "==\n");
       continue;
     }
+
+    // Buka file vocab yang jalurnya juga sudah dijamin benar
     vfp = fopen(vocabPath, "r");
     if (!vfp) {
       printf("\n==============================================================="
              "====\n");
-      printf("File vocab '%s' tidak ditemukan, silakan coba lagi", vocabPath);
-      printf("\n==============================================================="
-             "====\n");
-      fclose(fp);
-
-      // set pointer file menjadi NULL
+      printf("File vocab '%s' tidak ditemukan, silakan coba lagi\n", vocabPath);
+      printf("================================================================="
+             "==\n");
+      fclose(fp); // Tutup fp docword jika vocab-nya tidak ada
       fp = NULL;
       continue;
     }
     break;
   }
-
-  // Ambil nama koleksi dataset (misal: "kos", "enron")
-  extractCollectionName(docwordPath, collection, sizeof(collection));
 
   // Membaca header baris 1-3 dari docword: D (Dokumen), W (Vocabulary), N(Total
   // entry)
@@ -501,6 +493,10 @@ int main(void) {
       // Menandai potongan sebagai valid
       freqCache.isValid = 1;
 
+      // Panggil generate otomatis setelah menu 1 dieksekusi agar file
+      // langsung terbentuk
+      generateOutputFile(&freqCache, &rareCache, collection);
+
       // Bebaskan memori
       free(topFrequent);
     }
@@ -695,7 +691,7 @@ int main(void) {
     } else {
       printf("\n==============================================================="
              "====\n");
-      printf("Pilihan tidak valid. Silakan masukkan 1-5.\n");
+      printf("Pilihan tidak valid. Silakan masukkan 1-5");
       printf("\n==============================================================="
              "====\n");
     }

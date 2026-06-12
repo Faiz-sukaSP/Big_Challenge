@@ -20,7 +20,8 @@ void sortDuration(clock_t start, clock_t end);
 void extractCollectionName(const char *path, char *outName, size_t maxLen);
 int generateOutputFile(CachedResult *freqRes, CachedResult *rareRes,
                        const char *collection);
-void getVocabPath(const char *docwordPath, char *vocabPath, size_t maxLen);
+void normalizePaths(const char *inputPath, char *docwordPath, char *vocabPath,
+                    size_t maxLen);
 void freeCache(CachedResult *cache);
 
 #endif

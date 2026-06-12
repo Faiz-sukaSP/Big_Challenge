@@ -51,6 +51,11 @@ void extractCollectionName(const char *path, char *outName, size_t maxLen) {
   if (strncmp(fileName, "docword.", 8) == 0)
     fileName += 8; // sekarang `fileName` berubah menjadi contoh: "pubmed.txt"
 
+  // memeriksa apakah awalan nama file adalah "vocab." (6 karakter)
+  else if (strncmp(fileName, "vocab.", 6) == 0) {
+    fileName += 6; // potong awalan, `fileName` menjadi "kos.txt"
+  }
+
   // mengambil nama utama sebelum titik selanjutnya
   size_t i = 0;
 
@@ -72,26 +77,29 @@ void extractCollectionName(const char *path, char *outName, size_t maxLen) {
   }
 }
 
-void getVocabPath(const char *docwordPath, char *vocabPath, size_t maxLen) {
+void normalizePaths(const char *inputPath, char *docwordPath, char *vocabPath,
+                    size_t maxLen) {
+  char collection[128];
 
-  // cari karakter pemisah folder terakhir untuk menentukan direktori kerja
-  const char *lastSep = strrchr(docwordPath, '/');
+  extractCollectionName(inputPath, collection, sizeof(collection));
+
+  // 2. Cari pemisah folder untuk direktori
+  const char *lastSep = strrchr(inputPath, '/');
   if (!lastSep)
-    lastSep = strrchr(docwordPath, '\\');
+    lastSep = strrchr(inputPath, '\\');
 
   size_t dirLen = 0;
-  // termasuk karakter pemisah (/)
   if (lastSep)
-    dirLen = lastSep - docwordPath + 1;
+    dirLen = lastSep - inputPath + 1;
 
-  char collection[128];
-  extractCollectionName(docwordPath, collection, sizeof(collection));
-
-  // gabungkan direktori dengan nama vocabulary yang sesuai
+  // 3. Bentuk ulang KEDUA path dengan ekstensi yang dijamin benar
   if (dirLen > 0) {
-    snprintf(vocabPath, maxLen, "%.*svocab.%s.txt", (int)dirLen, docwordPath,
+    snprintf(docwordPath, maxLen, "%.*sdocword.%s.txt", (int)dirLen, inputPath,
+             collection);
+    snprintf(vocabPath, maxLen, "%.*svocab.%s.txt", (int)dirLen, inputPath,
              collection);
   } else {
+    snprintf(docwordPath, maxLen, "docword.%s.txt", collection);
     snprintf(vocabPath, maxLen, "vocab.%s.txt", collection);
   }
 }
@@ -113,62 +121,58 @@ int generateOutputFile(CachedResult *freqRes, CachedResult *rareRes,
                        const char *collection) {
   char fileName[256];
 
-  // 1. Tulis file Kata Tersering
+  // Tuliskan
   if (freqRes->isValid) {
     snprintf(fileName, sizeof(fileName), "top_frequent_%s.txt", collection);
 
+    // Buka file dengan mode tulis
     FILE *fileFrequent = fopen(fileName, "w");
 
     if (fileFrequent != NULL) {
-      fprintf(fileFrequent, "=== TOP %d KATA PALING SERING (%s) ===\n",
-              freqRes->k, collection);
-      fprintf(fileFrequent, "%-5s %-30s %s\n", "No.", "Kata", "Frekuensi");
-      fprintf(fileFrequent, "----------------------------------------------\n");
 
+      fprintf(fileFrequent, "=================================== \n");
+      fprintf(fileFrequent, "=== TOP %d FREQUENT %s DATA ===\n", freqRes->count,
+              collection);
+      fprintf(fileFrequent, "=================================== \n");
+
+      // Tuliskan kata dan frekuensinya
       for (int i = 0; i < freqRes->count; i++)
-        fprintf(fileFrequent, "%-5d %-30s %lld kali\n", i + 1,
-                freqRes->words[i], freqRes->freqs[i]);
+        fprintf(fileFrequent, "%s (%lld)\n", freqRes->words[i],
+                freqRes->freqs[i]);
 
-      // Tulis waktu pengurutan ke file
-      fprintf(fileFrequent, "----------------------------------------------\n");
-      if (freqRes->elapsed < 1000.0)
-        fprintf(fileFrequent, "Waktu pengurutan: %.2f ms\n", freqRes->elapsed);
-      else
-        fprintf(fileFrequent, "Waktu pengurutan: %.2f detik\n",
-                freqRes->elapsed / 1000.0);
+      fprintf(fileFrequent, "-----------------------------------\n");
+      fprintf(fileFrequent, "Waktu untuk mengurutkan: %.2f ms\n",
+              freqRes->elapsed);
 
       fclose(fileFrequent);
-      printf("File '%s' berhasil disimpan.\n", fileName);
+      printf("File '%s' berhasil disimpan\n", fileName);
     } else {
-      printf("Gagal membuka file '%s' untuk ditulis.\n", fileName);
+      printf("Gagal membuka file '%s' untuk ditulis\n", fileName);
     }
   }
 
-  // 2. Tulis file Kata Terjarang
+  // Tulis file Kata Terjarang
   if (rareRes->isValid) {
     snprintf(fileName, sizeof(fileName), "top_rare_%s.txt", collection);
+
     FILE *fileRare = fopen(fileName, "w");
+
     if (fileRare != NULL) {
-      fprintf(fileRare, "=== TOP %d KATA PALING JARANG (%s) ===\n", rareRes->k,
+      fprintf(fileRare, "=================================== \n");
+      fprintf(fileRare, "=== TOP %d RARE %s DATA ===\n", rareRes->count,
               collection);
-      fprintf(fileRare, "%-5s %-30s %s\n", "No.", "Kata", "Frekuensi");
-      fprintf(fileRare, "----------------------------------------------\n");
-      for (int i = 0; i < rareRes->count; i++) {
-        fprintf(fileRare, "%-5d %-30s %lld kali\n", i + 1, rareRes->words[i],
-                rareRes->freqs[i]);
-      }
-      // Tulis waktu pengurutan ke file
-      fprintf(fileRare, "----------------------------------------------\n");
-      if (rareRes->elapsed < 1000.0)
-        fprintf(fileRare, "Waktu pengurutan: %.2f ms\n", rareRes->elapsed);
-      else
-        fprintf(fileRare, "Waktu pengurutan: %.2f detik\n",
-                rareRes->elapsed / 1000.0);
+      fprintf(fileRare, "=================================== \n");
+
+      for (int i = 0; i < rareRes->count; i++)
+        fprintf(fileRare, "%s (%lld)\n", rareRes->words[i], rareRes->freqs[i]);
+
+      fprintf(fileRare, "-----------------------------------\n");
+      fprintf(fileRare, "Waktu untuk mengurutkan: %.2f ms\n", rareRes->elapsed);
 
       fclose(fileRare);
-      printf("File '%s' berhasil disimpan.\n", fileName);
+      printf("File '%s' berhasil disimpan\n", fileName);
     } else {
-      printf("Gagal membuka file '%s' untuk ditulis.\n", fileName);
+      printf("Gagal membuka file '%s' untuk ditulis\n", fileName);
     }
   }
 
