@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <time.h>
 
+// Menyimpan hasil pencarian dan pengurutan kosakata
 typedef struct CachedResult
 {
   char **words;     // array kata
